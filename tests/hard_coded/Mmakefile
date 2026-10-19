@@ -688,12 +688,15 @@ endif
 # The foreign_type_assertion test is currently meaningful only in C grades.
 # Tests of the C foreign language interface only work in C grades.
 # Runtime options are specific to the C backend.
+# store_ref relies on native constructor field numbering; the managed
+# reference implementations do not guarantee reflection field order.
 ifeq "$(filter csharp% java%,$(GRADE))" ""
 	C_ONLY_PROGS = \
 		factt \
 		factt_sort_test \
 		foreign_type_assertion \
 		runtime_opt \
+		store_ref \
 		target_mlobjs \
 		weak_ptr
 else

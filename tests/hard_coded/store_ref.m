@@ -63,4 +63,14 @@ main(!IO) :-
     copy_ref_value(NewEnumRef, NewEnumA, !IO),
     set_ref_value(NewEnumRef, enum3, !IO),
     copy_ref_value(NewEnumRef, NewEnumB, !IO),
-    io.write_line({NewEnumA, NewEnumB}, !IO).
+    io.write_line({NewEnumA, NewEnumB}, !IO),
+
+    % A shallow copy still aliases the tuple nested inside the stored term.
+    copy(Term, OwnedTerm),
+    new_ref(OwnedTerm, OwnedRef, !IO),
+    copy_ref_value(OwnedRef, Independent, !IO),
+    arg_ref(OwnedRef, 6, PairRef : generic_ref({int, int}, io), !IO),
+    arg_ref(PairRef, 0, FirstRef, !IO),
+    set_ref_value(FirstRef, 99, !IO),
+    copy_ref_value(OwnedRef, Updated, !IO),
+    io.write_line({Independent, Updated}, !IO).

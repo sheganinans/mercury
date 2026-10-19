@@ -196,11 +196,9 @@
 :- pred set_ref_value(generic_ref(T, S)::in, T::di,
     S::di, S::uo) is det <= store(S).
 
-    % Given a reference to a term, return that term.
-    % Note that this requires making a copy, so this pred may
-    % be inefficient if used to return large terms; it
-    % is most efficient with atomic terms.
-    % XXX current implementation buggy (does shallow copy)
+    % Given a reference to a term, return an independent deep copy.
+    % This may be inefficient for large terms; it is most efficient
+    % with atomic terms.
     %
 :- pred copy_ref_value(generic_ref(T, S)::in, T::uo,
     S::di, S::uo) is det <= store(S).
@@ -583,19 +581,19 @@ ref_functor(Ref, Functor, Arity, !Store) :-
     unsafe_ref_value(Ref, Val, !Store),
     functor(Val, canonicalize, Functor, Arity).
 
-copy_ref_value(Ref, Val) -->
-    % XXX Need to deep-copy non-atomic types.
-    unsafe_ref_value(Ref, Val).
+copy_ref_value(Ref, Val, !Store) :-
+    unsafe_ref_value(Ref, StoredVal, !Store),
+    copy(StoredVal, Val).
 
     % Unsafe_ref_value extracts the value that a reference refers to, without
     % making a copy; it is unsafe because the store could later be modified,
     % changing the returned value.
     %
-:- pred unsafe_ref_value(generic_ref(T, S)::in, T::uo, S::di, S::uo) is det
+:- pred unsafe_ref_value(generic_ref(T, S)::in, T::out, S::di, S::uo) is det
     <= store(S).
 
 :- pragma foreign_proc("C",
-    unsafe_ref_value(Ref::in, Val::uo, S0::di, S::uo),
+    unsafe_ref_value(Ref::in, Val::out, S0::di, S::uo),
     [will_not_call_mercury, promise_pure, thread_safe, will_not_modify_trail],
 "
     Val = * (MR_Word *) Ref;
@@ -603,14 +601,14 @@ copy_ref_value(Ref, Val) -->
 ").
 
 :- pragma foreign_proc("C#",
-    unsafe_ref_value(Ref::in, Val::uo, _S0::di, _S::uo),
+    unsafe_ref_value(Ref::in, Val::out, _S0::di, _S::uo),
     [will_not_call_mercury, promise_pure, thread_safe],
 "
     Val = Ref.getValue();
 ").
 
 :- pragma foreign_proc("Java",
-    unsafe_ref_value(Ref::in, Val::uo, _S0::di, _S::uo),
+    unsafe_ref_value(Ref::in, Val::out, _S0::di, _S::uo),
     [will_not_call_mercury, promise_pure, thread_safe],
 "
     Val = Ref.getValue();
