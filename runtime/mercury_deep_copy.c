@@ -92,7 +92,7 @@ MR_Word *MR_has_forwarding_pointer;
         size_t fwdptr_offset = (MR_Word *)(Data) - (MR_Word *) lower_limit;   \
         size_t fwdptr_word = fwdptr_offset / MR_WORDBITS;                     \
         size_t fwdptr_bit = fwdptr_offset % MR_WORDBITS;                      \
-        MR_has_forwarding_pointer[fwdptr_word] |= (1 << fwdptr_bit);          \
+        MR_has_forwarding_pointer[fwdptr_word] |= ((MR_Word) 1 << fwdptr_bit);\
     } while (0)
 
 #undef  if_forwarding_pointer
@@ -101,7 +101,8 @@ MR_Word *MR_has_forwarding_pointer;
         size_t fwdptr_offset = (MR_Word *)(Data) - (MR_Word *) lower_limit;   \
         size_t fwdptr_word = fwdptr_offset / MR_WORDBITS;                     \
         size_t fwdptr_bit = fwdptr_offset % MR_WORDBITS;                      \
-        if (MR_has_forwarding_pointer[fwdptr_word] & (1 << fwdptr_bit)) {     \
+        if (MR_has_forwarding_pointer[fwdptr_word] &                          \
+            ((MR_Word) 1 << fwdptr_bit)) {                                    \
             ACTION;                                                           \
         }                                                                     \
     } while (0)
