@@ -13,6 +13,7 @@ MMAKE_USE_MMC_MAKE=yes
 PROGS0 =	\
 	bug489 \
 	complex_test \
+	first_interface \
 	hello \
 	include_file \
 	include_file2 \
@@ -52,6 +53,19 @@ Mercury.modules: $(wildcard *.m)
 	$(MC) -f $(wildcard *.m)
 
 bug489.log: Mercury.modules
+
+# Dependency discovery also creates the requested short interface. A fresh
+# directory forces that re-entrant transition before the consumer is built.
+first_interface.runtest: TESTS_FLAGS first_interface.m first_interface_helper.m \
+		first_interface.exp
+	rm -rf first_interface.dir
+	mkdir first_interface.dir
+	cp first_interface.m first_interface_helper.m first_interface.dir/
+	cd first_interface.dir && \
+		$(MCM) first_interface_helper.int3 && \
+		$(MCM) first_interface && \
+		./first_interface > ../first_interface.out
+	diff -u first_interface.exp first_interface.out
 
 complex_test.log: install_libs
 
@@ -106,7 +120,7 @@ TESTS_FLAGS: ../TESTS_FLAGS
 realclean_local: realclean_mmc_make
 
 realclean_mmc_make: TESTS_FLAGS
-	rm -rf install include_file2.err rebuild.err2 factt.err2
+	rm -rf install include_file2.err rebuild.err2 factt.err2 first_interface.dir
 	# ./TESTS_FLAGS is expected by the following line.
 	cd lib; $(MCM) complex_numbers.realclean linkage_test2.realclean
 	rm -f TESTS_FLAGS

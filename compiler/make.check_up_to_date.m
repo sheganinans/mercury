@@ -581,32 +581,6 @@ get_target_id_status(ProgressStream, Globals, TargetId, Result, !Info, !IO) :-
 get_target_id_status_main_path(ProgressStream, Globals,
         TargetId, Target, ModuleName, Result, !Info, !IO) :-
     TargetStatusMap0 = make_info_get_target_status_map(!.Info),
-    % XXX The management of dependency file status map here is incorrect.
-    %
-    % The code here checks whether TargetId is in TargetStatusMap0, and
-    % if it is not there, it computes its Status, and then inserts that Status
-    % into TargetStatusMap. So far so good. The problem is that
-    %
-    % - the code of the else-part calls get_maybe_module_dep_info
-    % - which calls maybe_get_maybe_module_dep_info
-    % - which calls do_get_maybe_module_dep_info
-    % - which calls write_module_dep_files_for_source_file
-    % - which calls record_made_target
-    % - which calls record_made_target_given_maybe_touched_files
-    % - which calls update_target_status
-    %
-    % which adds an entry to the dependency file status map.
-    % This entry CAN be for TargetId, and if it is, then the call to
-    % version_hash_table.det_insert at the end of the else-part
-    % will throw an exception that leads to a compiler abort.
-    % The command "mmc --make --options-file xyz after_end_module.int3"
-    % in tests/invalid_nodepend exhibits this behavior as of 2023 oct 23,
-    % provided the given options file sets things up properly for mmc --make.
-    %
-    % Unfortunately, the right way to fix this is not clear. For example,
-    % replacing the version_hash_table.det_insert below with
-    % version_hash_table.set would fix this symptom, but I (zs) think
-    % that is unlikely to fix the underlying problem.
     ( if
         version_hash_table.search(TargetStatusMap0, TargetId, StatusPrime)
     then
@@ -623,40 +597,50 @@ get_target_id_status_main_path(ProgressStream, Globals,
         MaybeTargetFileName = yes(TargetFileName),
         get_maybe_module_dep_info(ProgressStream, Globals, ModuleName,
             MaybeModuleDepInfo, !Info, !IO),
-        (
-            MaybeModuleDepInfo = no_module_dep_info,
-            Status = target_status_error
-        ;
-            MaybeModuleDepInfo = some_module_dep_info(ModuleDepInfo),
-            module_dep_info_get_source_file_dir(ModuleDepInfo, ModuleDir),
-            ( if ModuleDir = dir.this_directory then
-                % XXX What is the reason for returning this value here?
-                Status = target_status_not_considered
-            else
-                % Targets from libraries are always considered to be
-                % up-to-date if they exist.
-                % XXX Presumably this code treats any code in another directory
-                % as if it were in a library.
-                get_target_timestamp_search(ProgressStream, Globals,
-                    Target, MaybeTimestamp, !Info, !IO),
-                (
-                    MaybeTimestamp = ok(_),
-                    Status = target_status_up_to_date
-                ;
-                    MaybeTimestamp = error(Error),
-                    Status = target_status_error,
-                    string.format("** Error: file `%s' not found: %s\n",
-                        [s(TargetFileName), s(Error)], ErrorMsg),
-                    % Try to write this with one call to avoid
-                    % interleaved output when doing parallel builds.
-                    io.write_string(ProgressStream, ErrorMsg, !IO)
-                )
-            )
-        ),
+        % Dependency discovery may itself build this target, notably an int3,
+        % and record its result. Preserve that authoritative status rather
+        % than computing an initial status from a stale absence check.
         TargetStatusMap1 = make_info_get_target_status_map(!.Info),
-        version_hash_table.det_insert(TargetId, Status,
-            TargetStatusMap1, TargetStatusMap),
-        make_info_set_target_status_map(TargetStatusMap, !Info)
+        ( if
+            version_hash_table.search(TargetStatusMap1, TargetId, RecordedStatus)
+        then
+            Status = RecordedStatus
+        else
+            (
+                MaybeModuleDepInfo = no_module_dep_info,
+                Status = target_status_error
+            ;
+                MaybeModuleDepInfo = some_module_dep_info(ModuleDepInfo),
+                module_dep_info_get_source_file_dir(ModuleDepInfo, ModuleDir),
+                ( if ModuleDir = dir.this_directory then
+                    % XXX What is the reason for returning this value here?
+                    Status = target_status_not_considered
+                else
+                    % Targets from libraries are always considered to be
+                    % up-to-date if they exist.
+                    % XXX Presumably this code treats any code in another
+                    % directory as if it were in a library.
+                    get_target_timestamp_search(ProgressStream, Globals,
+                        Target, MaybeTimestamp, !Info, !IO),
+                    (
+                        MaybeTimestamp = ok(_),
+                        Status = target_status_up_to_date
+                    ;
+                        MaybeTimestamp = error(Error),
+                        Status = target_status_error,
+                        string.format("** Error: file `%s' not found: %s\n",
+                            [s(TargetFileName), s(Error)], ErrorMsg),
+                        % Try to write this with one call to avoid
+                        % interleaved output when doing parallel builds.
+                        io.write_string(ProgressStream, ErrorMsg, !IO)
+                    )
+                )
+            ),
+            TargetStatusMap2 = make_info_get_target_status_map(!.Info),
+            version_hash_table.det_insert(TargetId, Status,
+                TargetStatusMap2, TargetStatusMap),
+            make_info_set_target_status_map(TargetStatusMap, !Info)
+        )
     ),
     Result = target_status_result(TargetId, MaybeTargetFileName, Status).
 
