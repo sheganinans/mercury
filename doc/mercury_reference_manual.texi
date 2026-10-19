@@ -6581,15 +6581,24 @@ bad(job(p)).                    % Error: p does not have required mode
 @dots{}
 @end example
 
-As a new feature, combined higher-order types and insts are only permitted
-as direct arguments of functors in discriminated unions.
-So the following examples currently result in errors.
+Combined higher-order types and insts are also permitted
+on the right hand side of an equivalence type definition.
+For example, the following definitions are valid:
 
 @example
-% Error: use on the RHS of equivalence types.
 :- type p == (pred(io::di, io::uo) is det).
 :- type f == (func(int::in) = (int::out) is semidet).
+@end example
 
+The names of these equivalence types may be used
+in predicate and function signatures.
+This is distinct from writing a combined annotation directly in a signature.
+
+Combined annotations written directly inside a type constructor
+or in a predicate or function signature are not currently permitted.
+The following examples therefore result in errors:
+
+@example
 % Error: use inside a type constructor.
 :- type jobs
     --->    jobs(list(pred(int::out, io::di, io::uo) is det)).
