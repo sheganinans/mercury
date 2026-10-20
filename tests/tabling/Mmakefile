@@ -38,6 +38,7 @@ SIMPLE_NONLOOP_PROGS = \
 	oota \
 	pack_args_memo \
 	reset_stats_intermod \
+	rtti_packed_phantom \
 	specified_hidden_arg \
 	table_foreign_enum \
 	table_foreign_output \

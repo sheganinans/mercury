@@ -171,12 +171,23 @@
 // descriptor of its top function symbol, the argument vector of its
 // arguments, and the number of an argument, return the type_info
 // of that argument.
+//
+// Only existential type variables require the argument vector. In particular,
+// local packed functors have no argument vector, but phantom enum parameters
+// can still require substitution of universally quantified type variables.
+// Do not evaluate argvec unless the functor has existential type information.
 
 #define MR_get_arg_type_info(ti, fdesc, argvec, argnum)                     \
         ( MR_arg_type_may_contain_var(functor_desc, argnum) ?               \
-            MR_create_type_info_maybe_existq(                               \
-                MR_TYPEINFO_GET_FIXED_ARITY_ARG_VECTOR(ti),                 \
-                fdesc->MR_du_functor_arg_types[argnum], argvec, fdesc)      \
+            ( fdesc->MR_du_functor_exist_info == NULL ?                      \
+                MR_create_type_info(                                        \
+                    MR_TYPEINFO_GET_FIXED_ARITY_ARG_VECTOR(ti),             \
+                    fdesc->MR_du_functor_arg_types[argnum])                 \
+            :                                                               \
+                MR_create_type_info_maybe_existq(                            \
+                    MR_TYPEINFO_GET_FIXED_ARITY_ARG_VECTOR(ti),             \
+                    fdesc->MR_du_functor_arg_types[argnum], argvec, fdesc)  \
+            )                                                               \
         :                                                                   \
             MR_pseudo_type_info_is_ground(                                  \
                 fdesc->MR_du_functor_arg_types[argnum])                     \
@@ -184,10 +195,16 @@
 
 #define MR_get_arg_type_info_alloc(ti, fdesc, argvec, argnum, alloc)        \
         ( MR_arg_type_may_contain_var(functor_desc, argnum) ?               \
-            MR_make_type_info_maybe_existq(                                 \
-                MR_TYPEINFO_GET_FIXED_ARITY_ARG_VECTOR(ti),                 \
-                fdesc->MR_du_functor_arg_types[argnum], argvec, fdesc,      \
-                &alloc)                                                     \
+            ( fdesc->MR_du_functor_exist_info == NULL ?                      \
+                MR_make_type_info(                                          \
+                    MR_TYPEINFO_GET_FIXED_ARITY_ARG_VECTOR(ti),             \
+                    fdesc->MR_du_functor_arg_types[argnum], &alloc)         \
+            :                                                               \
+                MR_make_type_info_maybe_existq(                              \
+                    MR_TYPEINFO_GET_FIXED_ARITY_ARG_VECTOR(ti),             \
+                    fdesc->MR_du_functor_arg_types[argnum], argvec, fdesc,  \
+                    &alloc)                                                 \
+            )                                                               \
         :                                                                   \
             MR_pseudo_type_info_is_ground(                                  \
                 fdesc->MR_du_functor_arg_types[argnum])                     \
