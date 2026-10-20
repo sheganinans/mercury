@@ -100,8 +100,11 @@
 
     #if defined(__APPLE__) && (__MACH__)
         #include <OpenGL/glu.h>
+        #define MGLU_CALLBACK
     #else
         #include <GL/glu.h>
+        /* APIENTRY is also the callback convention on Windows. */
+        #define MGLU_CALLBACK APIENTRY
     #endif
 ").
 
@@ -173,15 +176,16 @@ bool_to_int(no) = 0.
     [will_not_call_mercury, tabled_for_io, promise_pure],
 "
     Q = gluNewQuadric();
-    gluQuadricCallback(Q, GLU_ERROR, (void *)MGLU_quadric_error_callback);
+    gluQuadricCallback(Q, GLU_ERROR,
+        (void (MGLU_CALLBACK *)(void)) MGLU_quadric_error_callback);
 ").
 
 :- pragma foreign_decl("C",
-    "extern void MGLU_quadric_error_callback(GLenum);
+    "extern void MGLU_CALLBACK MGLU_quadric_error_callback(GLenum);
 ").
 
 :- pragma foreign_code("C", "
-void MGLU_quadric_error_callback(GLenum error_code)
+void MGLU_CALLBACK MGLU_quadric_error_callback(GLenum error_code)
 {
     fprintf(stderr, ""mglu: %s\\n"", gluErrorString(error_code));
     fflush(NULL);
