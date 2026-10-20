@@ -45,6 +45,8 @@
 :- import_module backend_libs.
 :- import_module backend_libs.builtin_ops.
 :- import_module hlds.hlds_module.
+:- import_module hlds.hlds_proc.
+:- import_module hlds.hlds_rtti.
 :- import_module hlds.type_util.
 :- import_module ll_backend.unify_gen_construct.
 :- import_module ll_backend.unify_gen_deconstruct.
@@ -100,7 +102,18 @@ generate_unification(CodeModel, Unification, GoalInfo, Code, !CI, !CLD) :-
     ;
         Unification = deconstruct(LHSVar, ConsId, RHSVars, ArgModes,
             CanFail, CanCGC),
-        NonLocals = goal_info_get_nonlocals(GoalInfo),
+        % Typeinfo liveness also keeps the evidence describing nonlocal
+        % variables alive, even when the program only passes those variables
+        % to a higher-order closure. Use the same completion as
+        % liveness.get_nonlocals_and_typeinfos, so deconstruction does not
+        % discard an implicitly live evidence field as assign_unused.
+        NonLocals0 = goal_info_get_code_gen_nonlocals(GoalInfo),
+        TypeInfoLiveness = body_typeinfo_liveness(!.CI),
+        get_var_table(!.CI, VarTable),
+        get_proc_info(!.CI, ProcInfo),
+        proc_info_get_rtti_varmaps(ProcInfo, RttiVarMaps),
+        maybe_complete_with_typeinfo_vars(VarTable, RttiVarMaps,
+            TypeInfoLiveness, NonLocals0, NonLocals),
         generate_deconstruction_unification(NonLocals, LHSVar, ConsId,
             RHSVars, ArgModes, CanFail, CanCGC, Code, !CI, !CLD)
     ;

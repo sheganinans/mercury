@@ -144,6 +144,7 @@ ORDINARY_PROGS = \
 	exist_cons_ho_arg \
 	existential_bound_tvar \
 	existential_float \
+	existential_render \
 	existential_reordering \
 	existential_reordering_class \
 	existential_type_switch_opt \

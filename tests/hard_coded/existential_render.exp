@@ -1,0 +1,3 @@
+integer=42; string=abcd
+explicit=42:42; predicate=prefix:abcd
+present=42; absent=missing

@@ -23,6 +23,9 @@
 
 %---------------------------------------------------------------------------%
 
+    % The nonlocals must include the typeinfo/typeclass-info variables
+    % required by typeinfo liveness, not just explicit uses in the body.
+    %
 :- pred generate_deconstruction_unification(set_of_progvar::in,
     prog_var::in, cons_id::in, list(prog_var)::in, list(unify_mode)::in,
     can_fail::in, can_cgc::in, llds_code::out, code_info::in, code_info::out,
