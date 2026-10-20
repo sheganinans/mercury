@@ -304,6 +304,30 @@ include ../Mmake.common
 
 #---------------------#
 
+# Check bounded pages and recorded payloads independently of transcript wording.
+.PHONY: tabled_read.runtest
+tabled_read.runtest: tabled_read.res tabled_read tabled_read.data \
+		tabled_read_io_window.py
+	@window_tmp=`mktemp -d` || exit 1; \
+	trap 'rm -rf "$$window_tmp"' 0; \
+	status=0; \
+	python3 tabled_read_io_window.py --executable ./tabled_read \
+		--data-dir . --output "$$window_tmp/run" --quiet-on-success \
+		> tabled_read.io_window.res 2>&1 || status=$$?; \
+	if test "$$status" -ne 0; then \
+		cat tabled_read.io_window.res; \
+		if test -f "$$window_tmp/run/mdb.raw"; then \
+			cat "$$window_tmp/run/mdb.raw"; \
+		fi; \
+	fi; \
+	exit "$$status"
+
+tabled_read.realclean: clean_tabled_read_io_window
+
+.PHONY: clean_tabled_read_io_window
+clean_tabled_read_io_window:
+	rm -f tabled_read.io_window.res
+
 # Set up readline to make it easier to use completion non-interactively.
 completion.out: completion completion.inp
 	INPUTRC=completion.inputrc $(MDB) ./completion \

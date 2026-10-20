@@ -32,9 +32,9 @@ action 16: fake_read_char_code(c_pointer(0xXXXX), 65)
 action 17: fake_read_char_code(c_pointer(0xXXXX), 32)
 action 18: fake_read_char_code(c_pointer(0xXXXX), 103)
 action 19: fake_read_char_code(c_pointer(0xXXXX), 97)
-action 20: fake_read_char_code(c_pointer(0xXXXX), 109)
 there are more actions, up to action 40
 mdb> print io
+action 20: fake_read_char_code(c_pointer(0xXXXX), 109)
 action 21: fake_read_char_code(c_pointer(0xXXXX), 98)
 action 22: fake_read_char_code(c_pointer(0xXXXX), 108)
 action 23: fake_read_char_code(c_pointer(0xXXXX), 101)
@@ -54,6 +54,8 @@ action 36: fake_read_char_code(c_pointer(0xXXXX), 103)
 action 37: fake_read_char_code(c_pointer(0xXXXX), 101)
 action 38: fake_read_char_code(c_pointer(0xXXXX), 116)
 action 39: fake_read_char_code(c_pointer(0xXXXX), 115)
+there are more actions, up to action 40
+mdb> print io
 action 40: fake_read_char_code(c_pointer(0xXXXX), 32)
 there are no more actions (yet)
 mdb> s
@@ -83,7 +85,6 @@ action 17: fake_read_char_code(c_pointer(0xXXXX), 32)
 action 18: fake_read_char_code(c_pointer(0xXXXX), 103)
 action 19: fake_read_char_code(c_pointer(0xXXXX), 97)
 action 20: fake_read_char_code(c_pointer(0xXXXX), 109)
-action 21: fake_read_char_code(c_pointer(0xXXXX), 98)
 there are more actions, up to action 80
 mdb> c
 *Contractor -* A gambler who never gets to shuffle, cut or deal.

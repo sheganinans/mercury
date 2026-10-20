@@ -286,16 +286,21 @@ MR_trace_cmd_print(char **words, int word_count, MR_TraceCmdInfo *cmd,
                 lo_action = MR_io_tabling_start;
             }
 
-            hi_action = lo_action + max_printed_actions;
-            if (hi_action >= MR_io_tabling_counter_hwm) {
-                hi_action = MR_io_tabling_counter_hwm - 1;
+            // Bound the count before computing the inclusive upper limit.
+            if (lo_action < MR_io_tabling_counter_hwm) {
+                num_printed_actions = MR_io_tabling_counter_hwm - lo_action;
+            } else {
+                num_printed_actions = 0;
+            }
+            if (num_printed_actions > max_printed_actions) {
+                num_printed_actions = max_printed_actions;
             }
 
-            num_printed_actions = hi_action - lo_action + 1;
-            if (num_printed_actions <= 0) {
+            if (num_printed_actions == 0) {
                 fprintf(MR_mdb_out, "There are no I/O actions to print\n");
                 have_next_io_action = MR_FALSE;
             } else {
+                hi_action = lo_action + (num_printed_actions - 1);
                 for (action = lo_action; action <= hi_action; action++) {
                     fprintf(MR_mdb_out,
                         "action %" MR_INTEGER_LENGTH_MODIFIER "u: ", action);
@@ -323,6 +328,8 @@ MR_trace_cmd_print(char **words, int word_count, MR_TraceCmdInfo *cmd,
                 next_io_action = hi_action + 1;
                 have_next_io_action = MR_TRUE;
             }
+
+            return KEEP_INTERACTING;
         } else {
             problem = MR_trace_parse_browse_one(MR_mdb_out, MR_TRUE, words[1],
                 MR_trace_browse_internal, MR_BROWSE_CALLER_PRINT, format,
@@ -425,21 +432,29 @@ MR_trace_cmd_print(char **words, int word_count, MR_TraceCmdInfo *cmd,
             next_io_action = hi_action + 1;
             have_next_io_action = MR_TRUE;
         } else if (MR_streq(words[2], "*")) {
+            MR_Unsigned num_printed_actions;
+
             if (!set_max_printed_actions) {
                 max_printed_actions = MR_ALL_NUM_IO_ACTIONS_TO_PRINT;
             }
 
             lo_action = MR_io_tabling_start;
-            hi_action = MR_io_tabling_counter_hwm - 1;
+            if (lo_action >= MR_io_tabling_counter_hwm) {
+                fprintf(MR_mdb_out, "There are no I/O actions to print\n");
+                have_next_io_action = MR_FALSE;
+                return KEEP_INTERACTING;
+            }
 
-            if (lo_action + max_printed_actions < hi_action) {
+            num_printed_actions = MR_io_tabling_counter_hwm - lo_action;
+
+            if (num_printed_actions > max_printed_actions) {
                 fflush(MR_mdb_out);
                 fprintf(MR_mdb_err,
                     "I/O tabling has recorded "
-                    "%" MR_INTEGER_LENGTH_MODIFIER "d actions, "
+                    "%" MR_INTEGER_LENGTH_MODIFIER "u actions, "
                     "numbered %" MR_INTEGER_LENGTH_MODIFIER "u to "
                     "%" MR_INTEGER_LENGTH_MODIFIER "u.\n",
-                    MR_io_tabling_counter_hwm + MR_io_tabling_start - 1,
+                    num_printed_actions,
                     MR_io_tabling_start, MR_io_tabling_counter_hwm - 1);
                 if (set_max_printed_actions) {
                     fprintf(MR_mdb_err,
@@ -456,8 +471,10 @@ MR_trace_cmd_print(char **words, int word_count, MR_TraceCmdInfo *cmd,
                         max_printed_actions);
                 }
 
-                hi_action = lo_action + max_printed_actions - 1;
+                num_printed_actions = max_printed_actions;
             }
+
+            hi_action = lo_action + (num_printed_actions - 1);
 
             for (action = lo_action; action <= hi_action; action++) {
                 fprintf(MR_mdb_out,
